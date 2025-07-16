@@ -6,14 +6,12 @@ from flask import (
 import cloudflare_ddns
 
 # path to the single mounted file
-CONFIG_FILE = os.environ.get("CONFIG_PATH", "/config.json")
+CONFIG_FILE = "/config.json"
 app = Flask(__name__)
 app.secret_key = os.environ.get("FLASK_SECRET", "please-change-me")
 
 import json, os
 from flask import flash
-
-CONFIG_FILE = os.environ.get("CONFIG_PATH", "/config.json")
 
 def load_config():
     try:
