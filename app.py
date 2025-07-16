@@ -10,26 +10,24 @@ CONFIG_FILE = os.environ.get("CONFIG_PATH", "/config.json")
 app = Flask(__name__)
 app.secret_key = os.environ.get("FLASK_SECRET", "please-change-me")
 
+import json, os
+from flask import flash
+
+CONFIG_FILE = os.environ.get("CONFIG_PATH", "/config.json")
+
 def load_config():
     try:
-        cfg = json.load(open(CONFIG_FILE))
-    except Exception:
-        # if missing or invalid, seed with minimal structure
-        cfg = {
-            "cloudflare": [{
-                "authentication": {
-                    "api_token": "",
-                    "api_key": {"account_email": "", "api_key": ""}
-                },
-                "zone_id": "",
-                "subdomains": []
-            }],
-            "a": True,
-            "aaaa": True,
-            "purgeUnknownRecords": False,
-            "ttl": 300
-        }
-    # guarantee at least one zone entry
+        with open(CONFIG_FILE, "r") as f:
+            cfg = json.load(f)
+        # Quick debug‐print to your logs so you can see what actually landed
+        print("📝 Loaded config.json:", cfg)
+    except FileNotFoundError:
+        flash(f"config.json not found at {CONFIG_FILE}", "error")
+        cfg = {}
+    except json.JSONDecodeError as e:
+        flash(f"Failed to parse config.json: {e}", "error")
+        cfg = {}
+    # Ensure the minimal structure so the rest of your code doesn’t crash
     if not cfg.get("cloudflare"):
         cfg["cloudflare"] = [{
             "authentication": {
@@ -39,6 +37,10 @@ def load_config():
             "zone_id": "",
             "subdomains": []
         }]
+    cfg.setdefault("a", True)
+    cfg.setdefault("aaaa", True)
+    cfg.setdefault("purgeUnknownRecords", False)
+    cfg.setdefault("ttl", 300)
     return cfg
 
 def save_config(cfg):
