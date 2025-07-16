@@ -31,6 +31,6 @@ VOLUME ["/config.json"]
 # ---- Start both DDNS and Web UI ----
 # we use sh -c to fire-and-forget the ddns loop, then exec gunicorn
 CMD ["sh", "-c", "\
-     python /app/cloudflare-ddns.py --repeat & \
+     python /app/cloudflare_ddns.py --repeat & \
      exec gunicorn --bind 0.0.0.0:5000 app:app \
     "]
