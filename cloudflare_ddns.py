@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-#   cloudflare-ddns.py
+#   cloudflare_ddns.py
 #   Summary: Access your home network remotely via a custom domain name without a static IP!
 #   Description: Access your home network remotely via a custom domain
 #                Access your home network remotely via a custom domain

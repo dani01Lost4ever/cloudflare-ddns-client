@@ -1,18 +1,36 @@
-# ---- Base ----
-FROM python:alpine AS base
+# ---- Base image ----
+FROM python:3.9-alpine AS base
 
-#
-# ---- Dependencies ----
-FROM base AS dependencies
-# install dependencies
-COPY requirements.txt .
-RUN pip install --user -r requirements.txt
+# ensure local pip installs are on PATH
+ENV PATH=/root/.local/bin:$PATH \
+    PYTHONUNBUFFERED=1 \
+    # tell both scripts where to find config.json
+    CONFIG_PATH=/config
 
-#
-# ---- Release ----
-FROM base AS release
-# copy installed dependencies and project source file(s)
-WORKDIR /
-COPY --from=dependencies /root/.local /root/.local
-COPY cloudflare-ddns.py .
-CMD ["python", "-u", "/cloudflare-ddns.py", "--repeat"]
+WORKDIR /app
+
+# ---- Install deps ----
+COPY requirements.txt /app/
+RUN pip install --no-cache-dir --user -r requirements.txt
+
+# ---- Copy application code ----
+# your DDNS script
+COPY cloudflare_ddns.py /app/
+# the Flask glue
+COPY app.py /app/
+# UI templates
+COPY templates/ /app/templates/
+
+# ---- Expose the UI port ----
+EXPOSE 5000
+
+# ---- Declare config volume ----
+# the user must mount their host folder here:
+VOLUME ["/config.json"]
+
+# ---- Start both DDNS and Web UI ----
+# we use sh -c to fire-and-forget the ddns loop, then exec gunicorn
+CMD ["sh", "-c", "\
+     python /app/cloudflare-ddns.py --repeat & \
+     exec gunicorn --bind 0.0.0.0:5000 app:app \
+    "]

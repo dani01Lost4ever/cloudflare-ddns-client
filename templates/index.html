@@ -1,0 +1,46 @@
+﻿<!doctype html>
+<html>
+<head><title>CF-DDNS UI</title></head>
+<body>
+<h1>Cloudflare DDNS Configuration</h1>
+{% with msgs = get_flashed_messages(with_categories=true) %}
+{% for cat, msg in msgs %}
+<p style="color:green">{{ msg }}</p>
+{% endfor %}
+{% endwith %}
+
+<form method="POST">
+    <fieldset>
+        <legend>Auth</legend>
+        Account Email: <input name="account_email"
+                              value="{{cfg.authentication.api_key.account_email if cfg.authentication}}"><br>
+        API Key: <input name="api_key"
+                        value="{{cfg.authentication.api_key.api_key if cfg.authentication}}"><br>
+    </fieldset>
+    <fieldset>
+        <legend>Zone & Subdomain</legend>
+        Zone ID:  <input name="zone_id"
+                         value="{{cfg.cloudflare[0].zone_id if cfg.cloudflare}}"><br>
+        Subdomain: <input name="subdomain"
+                          value="{{cfg.cloudflare[0].subdomains[0].name if cfg.cloudflare}}"><br>
+        Proxied:   <input type="checkbox" name="proxied"
+                          {% if cfg.cloudflare[0].subdomains[0].proxied %}checked{% endif %}><br>
+    </fieldset>
+    <fieldset>
+        <legend>Options</legend>
+        Enable IPv4: <input type="checkbox" name="enable_ipv4"
+                            {% if cfg.a %}checked{% endif %}><br>
+        Enable IPv6: <input type="checkbox" name="enable_ipv6"
+                            {% if cfg.aaaa %}checked{% endif %}><br>
+        Purge stale records: <input type="checkbox" name="purge"
+                                    {% if cfg.purgeUnknownRecords %}checked{% endif %}><br>
+        TTL: <input name="ttl" size="4" value="{{cfg.ttl or 300}}"><br>
+    </fieldset>
+    <button type="submit">Save Config</button>
+</form>
+
+<hr>
+<a href="/update">Run Update Now</a> |
+<a href="/status">Show Current IPs (JSON)</a>
+</body>
+</html>
