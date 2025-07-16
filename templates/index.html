@@ -1,46 +1,104 @@
 ﻿<!doctype html>
 <html>
-<head><title>CF-DDNS UI</title></head>
+<head>
+    <meta charset="utf-8">
+    <title>CF-DDNS UI</title>
+</head>
 <body>
-<h1>Cloudflare DDNS Configuration</h1>
-{% with msgs = get_flashed_messages(with_categories=true) %}
-{% for cat, msg in msgs %}
-<p style="color:green">{{ msg }}</p>
+<h1>Cloudflare-DDNS Configuration</h1>
+{% for cat, msg in get_flashed_messages(with_categories=true) %}
+<p style="color:green">{{msg}}</p>
 {% endfor %}
-{% endwith %}
 
 <form method="POST">
+    <!-- Authentication -->
     <fieldset>
-        <legend>Auth</legend>
-        Account Email: <input name="account_email"
-                              value="{{cfg.authentication.api_key.account_email if cfg.authentication}}"><br>
-        API Key: <input name="api_key"
-                        value="{{cfg.authentication.api_key.api_key if cfg.authentication}}"><br>
+        <legend>Authentication (only one of api_token or api_key)</legend>
+        API Token:
+        <input name="api_token" size="40" value="{{cf.authentication.api_token}}">
+        <br>
+        Account Email:
+        <input name="account_email" size="40"
+               value="{{cf.authentication.api_key.account_email}}">
+        <br>
+        API Key:
+        <input name="api_key" size="40"
+               value="{{cf.authentication.api_key.api_key}}">
+        <br>
     </fieldset>
+
+    <!-- Zone -->
     <fieldset>
-        <legend>Zone & Subdomain</legend>
-        Zone ID:  <input name="zone_id"
-                         value="{{cfg.cloudflare[0].zone_id if cfg.cloudflare}}"><br>
-        Subdomain: <input name="subdomain"
-                          value="{{cfg.cloudflare[0].subdomains[0].name if cfg.cloudflare}}"><br>
-        Proxied:   <input type="checkbox" name="proxied"
-                          {% if cfg.cloudflare[0].subdomains[0].proxied %}checked{% endif %}><br>
+        <legend>Zone</legend>
+        Zone ID:
+        <input name="zone_id" size="36" value="{{cf.zone_id}}">
     </fieldset>
+
+    <!-- Subdomains -->
+    <fieldset>
+        <legend>Subdomains</legend>
+        <table>
+            <thead><tr><th>Subdomain</th><th>Proxied</th></tr></thead>
+            <tbody id="subs">
+            {% for sub in cf.subdomains %}
+            <tr>
+                <td>
+                    <input name="subdomain_name_{{loop.index0}}"
+                           value="{{sub.name}}">
+                </td>
+                <td>
+                    <input type="checkbox"
+                           name="subdomain_proxied_{{loop.index0}}"
+                           {% if sub.proxied %}checked{% endif %}>
+                </td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        <button type="button" onclick="addSub()">+ Add Subdomain</button>
+    </fieldset>
+
+    <!-- Other options -->
     <fieldset>
         <legend>Options</legend>
-        Enable IPv4: <input type="checkbox" name="enable_ipv4"
-                            {% if cfg.a %}checked{% endif %}><br>
-        Enable IPv6: <input type="checkbox" name="enable_ipv6"
-                            {% if cfg.aaaa %}checked{% endif %}><br>
-        Purge stale records: <input type="checkbox" name="purge"
-                                    {% if cfg.purgeUnknownRecords %}checked{% endif %}><br>
-        TTL: <input name="ttl" size="4" value="{{cfg.ttl or 300}}"><br>
+        <label>
+            <input type="checkbox" name="enable_ipv4"
+                   {% if cfg.a %}checked{% endif %}>
+            Enable IPv4 (A)
+        </label><br>
+        <label>
+            <input type="checkbox" name="enable_ipv6"
+                   {% if cfg.aaaa %}checked{% endif %}>
+            Enable IPv6 (AAAA)
+        </label><br>
+        <label>
+            <input type="checkbox" name="purge"
+                   {% if cfg.purgeUnknownRecords %}checked{% endif %}>
+            Purge stale records
+        </label><br>
+        TTL (seconds):
+        <input name="ttl" size="4" value="{{cfg.ttl}}">
     </fieldset>
+
     <button type="submit">Save Config</button>
 </form>
 
 <hr>
 <a href="/update">Run Update Now</a> |
 <a href="/status">Show Current IPs (JSON)</a>
+
+<script>
+    // dynamic add‐row for subdomains
+    let count = {{cf.subdomains|length}};
+    function addSub() {
+        const tb = document.getElementById("subs");
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+        <td><input name="subdomain_name_${count}" value=""></td>
+        <td><input type="checkbox" name="subdomain_proxied_${count}"></td>`;
+        tb.appendChild(tr);
+        count++;
+    }
+</script>
 </body>
 </html>
