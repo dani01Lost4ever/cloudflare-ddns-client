@@ -5,7 +5,7 @@ FROM python:3.9-alpine AS base
 ENV PATH=/root/.local/bin:$PATH \
     PYTHONUNBUFFERED=1 \
     # tell both scripts where to find config.json
-    CONFIG_PATH=/config
+    CONFIG_PATH=/
 
 WORKDIR /app
 
