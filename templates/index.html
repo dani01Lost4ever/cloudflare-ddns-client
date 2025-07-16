@@ -1,68 +1,144 @@
 ﻿<!doctype html>
-<html>
+<html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>CF-DDNS UI</title>
+    <title>CF-DDNS Dashboard</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <!-- Bootstrap 5 CSS -->
+    <link
+            href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css"
+            rel="stylesheet"
+            integrity="sha384-YSaY+K7dZoqbZZoI7hS7pN3qC5ru9nV1NfafADFPYQcT4H+QX+F9Ysb7wn0MtkOd"
+            crossorigin="anonymous">
+
     <style>
-        body { font-family: sans-serif; max-width: 800px; margin: 1em auto; }
-        table { border-collapse: collapse; width: 100%; margin-bottom: 1em; }
-        th, td { border: 1px solid #ccc; padding: 0.5em; text-align: left; }
-        fieldset { margin-bottom: 1em; }
-        .error { color: red; } .success { color: green; }
+        body {
+            padding-top: 4.5rem;
+            background: #f8f9fa;
+        }
+        .navbar-brand { font-weight: bold; }
+        .card + .card { margin-top: 1.5rem; }
     </style>
 </head>
 <body>
-<h1>CF-DDNS Dashboard</h1>
+<!-- fixed navbar -->
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="#">CF-DDNS UI</a>
+        <button class="navbar-toggler" type="button"
+                data-bs-toggle="collapse" data-bs-target="#navMenu"
+                aria-controls="navMenu" aria-expanded="false"
+                aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navMenu">
+            <ul class="navbar-nav ms-auto">
+                <li class="nav-item"><a class="nav-link" href="/">Home</a></li>
+                <li class="nav-item"><a class="nav-link" href="/update">Run Update</a></li>
+                <li class="nav-item"><a class="nav-link" href="/status">Current IPs</a></li>
+            </ul>
+        </div>
+    </div>
+</nav>
 
-{% for cat,msg in get_flashed_messages(with_categories=true) %}
-<p class="{{cat}}">{{msg}}</p>
-{% endfor %}
+<main class="container">
+    <h1 class="mb-4">CF-DDNS Dashboard</h1>
 
-<h2>Current DNS Records (Zone ID: {{zone}})</h2>
-{% if records %}
-<table>
-    <thead><tr>
-        <th>Name</th><th>Type</th><th>Content (IP)</th><th>Proxied</th>
-    </tr></thead>
-    <tbody>
-    {% for r in records %}
-    <tr>
-        <td>{{r.name}}</td>
-        <td>{{r.type}}</td>
-        <td>{{r.content}}</td>
-        <td>{{ '✔' if r.proxied else '✘' }}</td>
-    </tr>
+    {% for cat,msg in get_flashed_messages(with_categories=true) %}
+    <div class="alert alert-{{ 'danger' if cat=='error' else 'success' }} alert-dismissible fade show" role="alert">
+        {{ msg }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
     {% endfor %}
-    </tbody>
-</table>
-{% else %}
-<p><em>No A/AAAA records found for this zone.</em></p>
-{% endif %}
 
-<h2>Configured Subdomains</h2>
-{% if subs %}
-<ul>
-    {% for s in subs %}
-    <li>{{s.name}} &nbsp;[proxied: {{ 'yes' if s.proxied else 'no' }}]</li>
-    {% endfor %}
-</ul>
-{% else %}
-<p><em>No subdomains configured yet.</em></p>
-{% endif %}
+    <!-- DNS Records card -->
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">Current DNS Records (Zone ID: {{ zone }})</h5>
+        </div>
+        <div class="card-body p-0">
+            {% if records %}
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                    <tr>
+                        <th>Name</th>
+                        <th>Type</th>
+                        <th>Content (IP)</th>
+                        <th>Proxied</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% for r in records %}
+                    <tr>
+                        <td>{{ r.name }}</td>
+                        <td>{{ r.type }}</td>
+                        <td>{{ r.content }}</td>
+                        <td>{{ r.proxied and '✅' or '❌' }}</td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p class="p-3 mb-0 text-muted"><em>No A/AAAA records found.</em></p>
+            {% endif %}
+        </div>
+    </div>
 
-<fieldset>
-    <legend>Add a New Subdomain</legend>
-    <form action="{{ url_for('add_subdomain') }}" method="post">
-        <label>
-            Subdomain name (e.g. “foo” for foo.YOURDOMAIN.com):
-            <input name="new_subdomain" required>
-        </label>
-        <button type="submit">➕ Add</button>
-    </form>
-</fieldset>
+    <!-- Configured Subdomains card -->
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">Configured Subdomains</h5>
+        </div>
+        <div class="card-body">
+            {% if subs %}
+            <ul class="list-group">
+                {% for s in subs %}
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                    <span>{{ s.name }}</span>
+                    <span class="badge bg-{{ s.proxied and 'success' or 'secondary' }}">
+                  {{ s.proxied and 'Proxied' or 'DNS-only' }}
+                </span>
+                </li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <p class="text-muted"><em>No subdomains configured yet.</em></p>
+            {% endif %}
+        </div>
+    </div>
 
-<p>
-    <a href="/update">🔄 Run Update Now</a>
-</p>
+    <!-- Add Subdomain card -->
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">Add a New Subdomain</h5>
+        </div>
+        <div class="card-body">
+            <form action="{{ url_for('add_subdomain') }}" method="post" class="row g-3">
+                <div class="col-sm-8">
+                    <input type="text" name="new_subdomain" class="form-control"
+                           placeholder="e.g. myapp" required>
+                </div>
+                <div class="col-sm-4 d-grid">
+                    <button type="submit" class="btn btn-primary">➕ Add Subdomain</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Footer actions -->
+    <div class="d-flex justify-content-end mt-4">
+        <a href="/update" class="btn btn-warning me-2">🔄 Run Update Now</a>
+        <a href="/status" class="btn btn-info">📋 Show Current IPs</a>
+    </div>
+</main>
+
+<!-- Bootstrap 5 JS (optional for navbar toggles & alerts) -->
+<script
+        src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-AQgenV3CE+6bdsh3+vW3cUIV+D2S+crALG6Tf5C8hro++4LSnQKQfAgLWUal5rF7"
+        crossorigin="anonymous"></script>
 </body>
 </html>
