@@ -86,7 +86,8 @@
     </div>
 
     <!-- Configured Subdomains card -->
-    <div class="card">
+    <!-- Configured Subdomains -->
+    <div class="card mb-4">
         <div class="card-header">
             <h5 class="mb-0">Configured Subdomains</h5>
         </div>
@@ -96,9 +97,15 @@
                 {% for s in subs %}
                 <li class="list-group-item d-flex justify-content-between align-items-center">
                     <span>{{ s.name }}</span>
-                    <span class="badge bg-{{ s.proxied and 'success' or 'secondary' }}">
-                  {{ s.proxied and 'Proxied' or 'DNS-only' }}
-                </span>
+                    <form method="post"
+                          action="{{ url_for('delete_subdomain', idx=loop.index0) }}"
+                          style="margin:0;">
+                        <button type="submit"
+                                class="btn btn-sm btn-outline-danger"
+                                title="Delete this subdomain">
+                            🗑
+                        </button>
+                    </form>
                 </li>
                 {% endfor %}
             </ul>

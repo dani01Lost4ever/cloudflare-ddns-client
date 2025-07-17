@@ -86,6 +86,18 @@ def add_subdomain():
             flash(f"Added subdomain ‘{new}’", "success")
     return redirect(url_for("index"))
 
+@app.route("/delete-subdomain/<int:idx>", methods=["POST"])
+def delete_subdomain(idx):
+    cfg = load_config()
+    subs = cfg["cloudflare"][0]["subdomains"]
+    if 0 <= idx < len(subs):
+        removed = subs.pop(idx)
+        save_config(cfg)
+        flash(f"Removed ‘{removed['name']}’","success")
+    else:
+        flash("Invalid subdomain index","error")
+    return redirect(url_for("index"))
+
 @app.route("/update")
 def update_now():
     # fire off one‐shot update
