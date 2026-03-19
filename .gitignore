@@ -61,3 +61,5 @@ venv.bak/
 
 # Git History
 **/.history/*
+
+.idea
