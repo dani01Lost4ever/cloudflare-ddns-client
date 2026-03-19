@@ -1,0 +1,17 @@
+services:
+  cloudflare-ddns:
+    image: dani01cs/cloudflare_ddns_updater:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: cloudflare-ddns
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    ports:
+      - "5000:5000"       # Web dashboard
+    volumes:
+      - ./config.json:/config.json   # Mount your config file here
+    environment:
+      CONFIG_PATH: /
+      FLASK_SECRET: ${FLASK_SECRET:-please-change-me}
