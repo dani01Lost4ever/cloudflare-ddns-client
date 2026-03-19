@@ -1,147 +1,365 @@
-﻿<!doctype html>
-<html lang="en">
+<!doctype html>
+<html lang="en" data-bs-theme="dark">
 <head>
-    <meta charset="utf-8">
-    <title>CF-DDNS Dashboard</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta charset="utf-8">
+  <title>CF-DDNS Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+  <style>
+    :root {
+      --cf:       #F38020;
+      --cf-dim:   rgba(243,128,32,.15);
+      --bg:       #0d1117;
+      --surface:  #161b22;
+      --border:   #30363d;
+      --muted:    #8b949e;
+    }
 
-    <!-- Bootstrap 5 CSS -->
-    <link
-            href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css"
-            rel="stylesheet">
+    body          { background: var(--bg); padding-top: 4.5rem; }
+    .navbar       { background: #010409 !important; border-bottom: 1px solid var(--border); }
+    .navbar-brand { color: var(--cf) !important; font-weight: 700; letter-spacing: -.5px; }
 
-    <style>
-        body {
-            padding-top: 4.5rem;
-            background: #f8f9fa;
-        }
-        .navbar-brand { font-weight: bold; }
-        .card + .card { margin-top: 1.5rem; }
-    </style>
+    /* ── Stat cards ─────────────────────────────────────── */
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.1rem 1.25rem;
+      height: 100%;
+    }
+    .stat-card .lbl  { font-size: .7rem; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); }
+    .stat-card .val  { font-size: 1.1rem; font-weight: 600; font-family: monospace; word-break: break-all; }
+    .stat-card .ico  { font-size: 1.4rem; opacity: .75; }
+
+    /* ── Cards ──────────────────────────────────────────── */
+    .card          { background: var(--surface) !important; border: 1px solid var(--border) !important; }
+    .card-header   { background: #1c2128 !important; border-bottom: 1px solid var(--border) !important; font-weight: 600; }
+
+    /* ── Tables ─────────────────────────────────────────── */
+    .table         { --bs-table-bg: transparent; --bs-table-hover-bg: rgba(255,255,255,.03); }
+    .table thead   { --bs-table-bg: #1c2128; }
+
+    /* ── Buttons ─────────────────────────────────────────── */
+    .btn-cf        { background: var(--cf); border-color: var(--cf); color: #fff; }
+    .btn-cf:hover  { background: #d97018;   border-color: #d97018;   color: #fff; }
+
+    /* ── Status dot ─────────────────────────────────────── */
+    .status-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: #3fb950; display: inline-block;
+      animation: pulse 2.5s ease-in-out infinite;
+    }
+    .status-dot.error { background: #f85149; animation: none; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+    /* ── Rate bar ────────────────────────────────────────── */
+    .rate-bar  { height: 4px; background: var(--border); border-radius: 2px; margin-top: .4rem; }
+    .rate-fill { height: 100%; background: var(--cf); border-radius: 2px; transition: width .6s ease; }
+
+    /* ── Proxied badge ───────────────────────────────────── */
+    .badge-cf  { background: var(--cf); color: #fff; }
+
+    /* ── Spinner for update button ───────────────────────── */
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spin { display:inline-block; animation: spin .8s linear infinite; }
+  </style>
 </head>
 <body>
-<!-- fixed navbar -->
-<nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
-    <div class="container-fluid">
-        <a class="navbar-brand" href="#">CF-DDNS UI</a>
-        <button class="navbar-toggler" type="button"
-                data-bs-toggle="collapse" data-bs-target="#navMenu"
-                aria-controls="navMenu" aria-expanded="false"
-                aria-label="Toggle navigation">
-            <span class="navbar-toggler-icon"></span>
-        </button>
-        <div class="collapse navbar-collapse" id="navMenu">
-            <ul class="navbar-nav ms-auto">
-                <li class="nav-item"><a class="nav-link" href="/">Home</a></li>
-                <li class="nav-item"><a class="nav-link" href="/update">Run Update</a></li>
-                <li class="nav-item"><a class="nav-link" href="/status">Current IPs</a></li>
-            </ul>
-        </div>
+
+<!-- ── Navbar ──────────────────────────────────────────────────────────────── -->
+<nav class="navbar navbar-expand-lg fixed-top">
+  <div class="container-fluid px-4">
+
+    <span class="navbar-brand d-flex align-items-center gap-2">
+      <i class="bi bi-cloud-fill"></i> CF-DDNS
+    </span>
+
+    <div class="d-flex align-items-center gap-3 ms-auto">
+      <span class="d-flex align-items-center gap-2">
+        <span class="status-dot" id="js-dot"></span>
+        <small class="text-muted d-none d-sm-inline" id="js-last-check">—</small>
+      </span>
+      <a href="/update" class="btn btn-sm btn-cf" id="btn-update">
+        <i class="bi bi-arrow-repeat"></i> Update Now
+      </a>
     </div>
+
+  </div>
 </nav>
 
-<main class="container">
-    <h1 class="mb-4">CF-DDNS Dashboard</h1>
+<!-- ── Main ────────────────────────────────────────────────────────────────── -->
+<main class="container-fluid px-4 py-3" style="max-width:1400px">
 
-    {% for cat,msg in get_flashed_messages(with_categories=true) %}
-    <div class="alert alert-{{ 'danger' if cat=='error' else 'success' }} alert-dismissible fade show" role="alert">
-        {{ msg }}
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+  <!-- Flash messages -->
+  {% for cat, msg in get_flashed_messages(with_categories=true) %}
+  <div class="alert alert-{{ 'danger' if cat=='error' else ('warning' if cat=='info' else 'success') }} alert-dismissible fade show" role="alert">
+    {{ msg }}
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  </div>
+  {% endfor %}
+
+  <!-- ── Stat cards ──────────────────────────────────────────────────────── -->
+  <div class="row g-3 mb-4">
+
+    <div class="col-6 col-md-3">
+      <div class="stat-card">
+        <div class="d-flex justify-content-between align-items-start mb-2">
+          <span class="lbl">IPv4 (A)</span>
+          <i class="bi bi-4-circle ico text-info"></i>
+        </div>
+        <div class="val" id="js-ipv4">{{ status.ipv4 or '—' }}</div>
+      </div>
     </div>
-    {% endfor %}
 
-    <!-- DNS Records card -->
-    <div class="card">
-        <div class="card-header">
-            <h5 class="mb-0">Current DNS Records (Zone ID: {{ zone }})</h5>
+    <div class="col-6 col-md-3">
+      <div class="stat-card">
+        <div class="d-flex justify-content-between align-items-start mb-2">
+          <span class="lbl">IPv6 (AAAA)</span>
+          <i class="bi bi-6-circle ico text-info"></i>
+        </div>
+        <div class="val" id="js-ipv6">{{ status.ipv6 or '—' }}</div>
+      </div>
+    </div>
+
+    <div class="col-6 col-md-3">
+      <div class="stat-card">
+        <div class="d-flex justify-content-between align-items-start mb-2">
+          <span class="lbl">Last CF Update</span>
+          <i class="bi bi-clock-history ico text-warning"></i>
+        </div>
+        <div class="val" id="js-last-update">
+          {{ status.last_update or 'Never' }}
+        </div>
+      </div>
+    </div>
+
+    <div class="col-6 col-md-3">
+      <div class="stat-card">
+        <div class="d-flex justify-content-between align-items-start mb-2">
+          <span class="lbl">API Calls / 5 min</span>
+          <i class="bi bi-speedometer2 ico" style="color:var(--cf)"></i>
+        </div>
+        <div class="val" id="js-api-calls">{{ status.api_calls_5min or 0 }}</div>
+        <div class="rate-bar">
+          <div class="rate-fill" id="js-rate-fill"
+               style="width:{{ [((status.api_calls_5min or 0) / 1200 * 100), 100]|min|round(1) }}%">
+          </div>
+        </div>
+        <small class="text-muted">of 1,200 limit</small>
+      </div>
+    </div>
+
+  </div><!-- /row stats -->
+
+  <!-- ── Main content ────────────────────────────────────────────────────── -->
+  <div class="row g-3">
+
+    <!-- Left: DNS records table -->
+    <div class="col-lg-7">
+      <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <span><i class="bi bi-list-ul me-2"></i>Live DNS Records</span>
+          <small class="text-muted font-monospace" title="{{ zone }}">
+            {{ zone[:20] }}{{ '…' if zone|length > 20 else '' }}
+          </small>
         </div>
         <div class="card-body p-0">
-            {% if records %}
-            <div class="table-responsive">
-                <table class="table table-hover mb-0">
-                    <thead class="table-light">
-                    <tr>
-                        <th>Name</th>
-                        <th>Type</th>
-                        <th>Content (IP)</th>
-                        <th>Proxied</th>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    {% for r in records %}
-                    <tr>
-                        <td>{{ r.name }}</td>
-                        <td>{{ r.type }}</td>
-                        <td>{{ r.content }}</td>
-                        <td>{{ r.proxied and '✅' or '❌' }}</td>
-                    </tr>
-                    {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-            {% else %}
-            <p class="p-3 mb-0 text-muted"><em>No A/AAAA records found.</em></p>
-            {% endif %}
-        </div>
-    </div>
-
-    <!-- Configured Subdomains card -->
-    <!-- Configured Subdomains -->
-    <div class="card mb-4">
-        <div class="card-header">
-            <h5 class="mb-0">Configured Subdomains</h5>
-        </div>
-        <div class="card-body">
-            {% if subs %}
-            <ul class="list-group">
-                {% for s in subs %}
-                <li class="list-group-item d-flex justify-content-between align-items-center">
-                    <span>{{ s.name }}</span>
-                    <form method="post"
-                          action="{{ url_for('delete_subdomain', idx=loop.index0) }}"
-                          style="margin:0;">
-                        <button type="submit"
-                                class="btn btn-sm btn-outline-danger"
-                                title="Delete this subdomain">
-                            🗑
-                        </button>
-                    </form>
-                </li>
+          {% if records %}
+          <div class="table-responsive">
+            <table class="table table-sm table-hover align-middle mb-0">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th style="width:70px">Type</th>
+                  <th>IP Address</th>
+                  <th style="width:110px">Proxy</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for r in records %}
+                <tr>
+                  <td class="font-monospace small">{{ r.name }}</td>
+                  <td>
+                    <span class="badge bg-primary">{{ r.type }}</span>
+                  </td>
+                  <td class="font-monospace text-success small">{{ r.content }}</td>
+                  <td>
+                    {% if r.proxied %}
+                    <span class="badge badge-cf">
+                      <i class="bi bi-shield-fill-check me-1"></i>Proxied
+                    </span>
+                    {% else %}
+                    <span class="badge bg-secondary">
+                      <i class="bi bi-shield-slash me-1"></i>DNS only
+                    </span>
+                    {% endif %}
+                  </td>
+                </tr>
                 {% endfor %}
-            </ul>
-            {% else %}
-            <p class="text-muted"><em>No subdomains configured yet.</em></p>
-            {% endif %}
+              </tbody>
+            </table>
+          </div>
+          {% else %}
+          <div class="p-5 text-center text-muted">
+            <i class="bi bi-inbox fs-1 d-block mb-2 opacity-50"></i>
+            No A or AAAA records found in this zone.
+          </div>
+          {% endif %}
         </div>
-    </div>
+      </div>
+    </div><!-- /col records -->
 
-    <!-- Add Subdomain card -->
-    <div class="card">
+    <!-- Right: management -->
+    <div class="col-lg-5 d-flex flex-column gap-3">
+
+      <!-- Configured subdomains -->
+      <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <span><i class="bi bi-hdd-network me-2"></i>Managed Subdomains</span>
+          <span class="badge bg-secondary">{{ subs|length }}</span>
+        </div>
+        <div class="card-body p-0">
+          {% if subs %}
+          <ul class="list-group list-group-flush">
+            {% for s in subs %}
+            <li class="list-group-item d-flex justify-content-between align-items-center"
+                style="background:transparent">
+              <div class="d-flex align-items-center gap-2">
+                <i class="bi bi-globe2 text-muted small"></i>
+                <span class="font-monospace">{{ s.name }}</span>
+                {% if s.proxied %}
+                <span class="badge badge-cf" style="font-size:.6rem">proxied</span>
+                {% endif %}
+              </div>
+              <form method="post"
+                    action="{{ url_for('delete_subdomain', idx=loop.index0) }}"
+                    class="m-0">
+                <button type="submit" class="btn btn-sm btn-outline-danger"
+                        title="Remove this subdomain">
+                  <i class="bi bi-trash3"></i>
+                </button>
+              </form>
+            </li>
+            {% endfor %}
+          </ul>
+          {% else %}
+          <div class="p-4 text-center text-muted">
+            <i class="bi bi-hdd-network-fill opacity-25 fs-2 d-block mb-2"></i>
+            No subdomains configured yet.
+          </div>
+          {% endif %}
+        </div>
+        <div class="card-footer p-2" style="background:#1c2128;border-top:1px solid var(--border)">
+          <form method="post" action="{{ url_for('sync_from_cloudflare') }}">
+            <button class="btn btn-sm btn-outline-secondary w-100">
+              <i class="bi bi-cloud-download me-1"></i>Import existing records from Cloudflare
+            </button>
+          </form>
+        </div>
+      </div>
+
+      <!-- Add subdomain -->
+      <div class="card">
         <div class="card-header">
-            <h5 class="mb-0">Add a New Subdomain</h5>
+          <i class="bi bi-plus-circle me-2"></i>Add Subdomain
         </div>
         <div class="card-body">
-            <form action="{{ url_for('add_subdomain') }}" method="post" class="row g-3">
-                <div class="col-sm-8">
-                    <input type="text" name="new_subdomain" class="form-control"
-                           placeholder="e.g. myapp" required>
-                </div>
-                <div class="col-sm-4 d-grid">
-                    <button type="submit" class="btn btn-primary">➕ Add Subdomain</button>
-                </div>
-            </form>
+          <form action="{{ url_for('add_subdomain') }}" method="post">
+            <div class="mb-3">
+              <label class="form-label small text-muted">Subdomain name</label>
+              <input type="text" name="new_subdomain"
+                     class="form-control font-monospace"
+                     placeholder="e.g. home, vpn, api, @" required>
+              <div class="form-text">Use <code>@</code> for the root domain.</div>
+            </div>
+            <div class="form-check mb-3">
+              <input class="form-check-input" type="checkbox" name="proxied" id="chk-proxied">
+              <label class="form-check-label small" for="chk-proxied">
+                Enable Cloudflare proxy (orange cloud)
+              </label>
+            </div>
+            <button type="submit" class="btn btn-cf w-100">
+              <i class="bi bi-plus-lg me-1"></i>Add
+            </button>
+          </form>
         </div>
-    </div>
+      </div>
 
-    <!-- Footer actions -->
-    <div class="d-flex justify-content-end mt-4">
-        <a href="/update" class="btn btn-warning me-2">🔄 Run Update Now</a>
-        <a href="/status" class="btn btn-info">📋 Show Current IPs</a>
-    </div>
+      <!-- Config summary -->
+      <div class="card">
+        <div class="card-header">
+          <i class="bi bi-gear me-2"></i>Active Configuration
+        </div>
+        <div class="card-body py-2">
+          <dl class="row mb-0 small">
+            <dt class="col-7 text-muted fw-normal">IP check interval</dt>
+            <dd class="col-5 font-monospace mb-1">{{ cfg.check_interval }}s</dd>
+
+            <dt class="col-7 text-muted fw-normal">DNS record TTL</dt>
+            <dd class="col-5 font-monospace mb-1">{{ cfg.ttl }}s</dd>
+
+            <dt class="col-7 text-muted fw-normal">IPv4 (A records)</dt>
+            <dd class="col-5 mb-1">
+              {% if cfg.a %}<span class="text-success">enabled</span>
+              {% else %}<span class="text-danger">disabled</span>{% endif %}
+            </dd>
+
+            <dt class="col-7 text-muted fw-normal">IPv6 (AAAA records)</dt>
+            <dd class="col-5 mb-1">
+              {% if cfg.aaaa %}<span class="text-success">enabled</span>
+              {% else %}<span class="text-danger">disabled</span>{% endif %}
+            </dd>
+
+            <dt class="col-7 text-muted fw-normal">Purge unknown records</dt>
+            <dd class="col-5 mb-0">
+              {% if cfg.purgeUnknownRecords %}
+                <span class="text-warning">yes</span>
+              {% else %}
+                <span class="text-muted">no</span>
+              {% endif %}
+            </dd>
+          </dl>
+        </div>
+      </div>
+
+    </div><!-- /col right -->
+  </div><!-- /row main -->
 </main>
 
-<!-- Bootstrap 5 JS (optional for navbar toggles & alerts) -->
-<script
-        src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function fmtTime(iso) {
+  if (!iso) return '—';
+  try {
+    return new Date(iso).toLocaleTimeString([], { hour:'2-digit', minute:'2-digit', second:'2-digit' });
+  } catch { return iso; }
+}
+
+// ── Auto-refresh status (reads status.json via /api/status, no CF API call) ──
+async function refreshStatus() {
+  const dot = document.getElementById('js-dot');
+  try {
+    const data = await fetch('/api/status').then(r => { if (!r.ok) throw r; return r.json(); });
+
+    document.getElementById('js-ipv4').textContent        = data.ipv4 || '—';
+    document.getElementById('js-ipv6').textContent        = data.ipv6 || '—';
+    document.getElementById('js-last-update').textContent = data.last_update ? fmtTime(data.last_update) : 'Never';
+    document.getElementById('js-last-check').textContent  = data.last_check  ? 'checked ' + fmtTime(data.last_check) : '—';
+
+    const calls = data.api_calls_5min || 0;
+    document.getElementById('js-api-calls').textContent   = calls;
+    document.getElementById('js-rate-fill').style.width   = Math.min(100, calls / 1200 * 100).toFixed(1) + '%';
+
+    dot.className = 'status-dot';
+  } catch {
+    dot.className = 'status-dot error';
+  }
+}
+
+refreshStatus();
+setInterval(refreshStatus, 5000);
+</script>
 </body>
 </html>

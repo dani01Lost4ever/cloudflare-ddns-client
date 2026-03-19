@@ -1,14 +1,14 @@
-version: '3.9'
 services:
   cloudflare-ddns:
-    image: timothyjmiller/cloudflare-ddns:latest
+    image: dani01cs/cloudflare_ddns_updater:latest
     container_name: cloudflare-ddns
+    restart: unless-stopped
     security_opt:
       - no-new-privileges:true
-    network_mode: 'host'
-    environment:
-      - PUID=1000
-      - PGID=1000
+    ports:
+      - "5000:5000"
     volumes:
-      - /YOUR/PATH/HERE/config.json:/config.json
-    restart: unless-stopped
+      - ${CONFIG_FILE}:/config.json
+    environment:
+      CONFIG_PATH: /
+      FLASK_SECRET: ${FLASK_SECRET:-please-change-me}
